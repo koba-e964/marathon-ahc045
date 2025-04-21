@@ -876,7 +876,7 @@ pub fn vis(input: &Input, out: &Output, t: usize, coordinate: &str) -> (i64, Str
     (score, "".to_owned(), doc.to_string())
 }
 
-fn read_line(stdout: &mut BufReader<ChildStdout>, local: bool) -> Result<String, String> {
+fn read_line(stdout: &mut BufReader<ChildStdout>, local: bool, exact_value: bool) -> Result<String, String> {
     loop {
         let mut out = String::new();
         match stdout.read_line(&mut out) {
@@ -885,7 +885,7 @@ fn read_line(stdout: &mut BufReader<ChildStdout>, local: bool) -> Result<String,
             }
             _ => (),
         }
-        if local {
+        if local && !exact_value {
             print!("{}", out);
         }
         let v = out.trim();
@@ -925,7 +925,7 @@ pub fn exec(p: &mut std::process::Child, local: bool, input: &Input, exact_value
     let dist = build_dist_matrix(&input);
     let mut score = 0;
     for q in 0..(input.Q + 1) {
-        let line = read_line(&mut stdout, local)?;
+        let line = read_line(&mut stdout, local, exact_value)?;
         let mut tokens = line.split_whitespace();
         let c = read(tokens.next(), '!'..='?')?;
         if c != '!' && c != '?' {
@@ -950,7 +950,7 @@ pub fn exec(p: &mut std::process::Child, local: bool, input: &Input, exact_value
             }
             let mut outputs = vec![];
             for _ in 0..input.N {
-                let line = read_line(&mut stdout, local)?;
+                let line = read_line(&mut stdout, local, exact_value)?;
                 outputs.push(line);
             }
             let (score_tmp, err, _) = compute_score_details(&input, &outputs);
@@ -961,7 +961,7 @@ pub fn exec(p: &mut std::process::Child, local: bool, input: &Input, exact_value
             break;
         }
     }
-    if read_line(&mut stdout, local).is_ok() {
+    if read_line(&mut stdout, local, exact_value).is_ok() {
         return Err("Too many output".to_owned());
     }
     Ok(score as i64)
