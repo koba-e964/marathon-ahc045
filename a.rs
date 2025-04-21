@@ -101,7 +101,7 @@ fn answer(groups: &[Vec<usize>], edges: &[Vec<(usize, usize)>]) {
     }
 }
 
-const CLIMB0_COUNT: i32 = 400000;
+const CLIMB0_COUNT: i32 = 4000000;
 
 fn score0(x: &[usize], y: &[usize], groups: &[Vec<usize>]) -> f64 {
     let mut score = 0.0;
@@ -110,6 +110,28 @@ fn score0(x: &[usize], y: &[usize], groups: &[Vec<usize>]) -> f64 {
             let j = i + 1;
             let dist = (x[group[i]] as f64 - x[group[j]] as f64).powi(2) + (y[group[i]] as f64 - y[group[j]] as f64).powi(2);
             score += dist.sqrt();
+        }
+    }
+    score
+}
+
+fn score0_diff(
+    x: &[usize], y: &[usize], groups: &[Vec<usize>],
+    i: usize, ii: usize, j: usize, jj: usize,
+) -> f64 {
+    let mut score = 0.0;
+    for (g, idx, old, new) in [(&groups[i], ii, groups[j][jj], groups[i][ii]),
+                              (&groups[j], jj, groups[i][ii], groups[j][jj])] {
+        for k in 0..g.len() - 1 {
+            let l = k + 1;
+            if k != idx && l != idx {
+                continue;
+            }
+            let other = if k == idx { l } else { k };
+            assert_eq!(new, g[idx]);
+            let dist_new = (x[new] as f64 - x[g[other]] as f64).powi(2) + (y[new] as f64 - y[g[other]] as f64).powi(2);
+            let dist_old = (x[old] as f64 - x[g[other]] as f64).powi(2) + (y[old] as f64 - y[g[other]] as f64).powi(2);
+            score += dist_new.sqrt() - dist_old.sqrt();
         }
     }
     score
@@ -129,8 +151,9 @@ fn climb0(conf: Conf, x: &[usize], y: &[usize], rng: &mut Rng, groups: &mut [Vec
             let tmp = groups[i][ii];
             groups[i][ii] = groups[j][jj];
             groups[j][jj] = tmp;
-            let new_score = score0(x, y, &groups);
-            if new_score > score {
+            let diff = score0_diff(x, y, groups, i, ii, j, jj);
+            let new_score = diff + score;
+            if diff > 0.0 {
                 // revert
                 let tmp = groups[i][ii];
                 groups[i][ii] = groups[j][jj];
