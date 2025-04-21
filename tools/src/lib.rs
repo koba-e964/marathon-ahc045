@@ -3,7 +3,6 @@
 use itertools::Itertools;
 use proconio::input;
 use rand::prelude::*;
-use std::io::Read;
 use std::io::Write;
 use std::io::{prelude::*, BufReader};
 use std::ops::RangeBounds;
@@ -897,10 +896,7 @@ fn read_line(stdout: &mut BufReader<ChildStdout>, local: bool) -> Result<String,
     }
 }
 
-pub fn exec(p: &mut std::process::Child, local: bool) -> Result<i64, String> {
-    let mut input = String::new();
-    std::io::stdin().read_to_string(&mut input).unwrap();
-    let input = parse_input(&input);
+pub fn exec(p: &mut std::process::Child, local: bool, input: &Input, exact_value: bool) -> Result<i64, String> {
     let mut stdin = std::io::BufWriter::new(p.stdin.take().unwrap());
     let mut stdout = std::io::BufReader::new(p.stdout.take().unwrap());
     let _ = writeln!(
@@ -910,12 +906,20 @@ pub fn exec(p: &mut std::process::Child, local: bool) -> Result<i64, String> {
     );
     let _ = writeln!(stdin, "{}", input.G.iter().join(" "));
     for i in 0..input.N {
-        let _ = writeln!(
-            stdin,
-            "{} {} {} {}",
-            input.range[i].0, input.range[i].1, input.range[i].2, input.range[i].3
-        );
-    }
+        if exact_value {
+            let _ = writeln!(
+                stdin,
+                "{} {} {} {}",
+                input.xy[i].0, input.xy[i].0, input.xy[i].1, input.xy[i].1,
+            );
+        } else {
+            let _ = writeln!(
+                stdin,
+                "{} {} {} {}",
+                input.range[i].0, input.range[i].1, input.range[i].2, input.range[i].3,
+            );
+        }
+}
     let _ = stdin.flush();
     //真の座標についてユークリッド距離行列を作成する
     let dist = build_dist_matrix(&input);
