@@ -101,7 +101,7 @@ fn answer(groups: &[Vec<usize>], edges: &[Vec<(usize, usize)>]) {
     }
 }
 
-const CLIMB0_COUNT: i32 = 4000000;
+const CLIMB0_COUNT: i32 = 20_000_000;
 
 fn score0(x: &[usize], y: &[usize], groups: &[Vec<usize>]) -> f64 {
     let mut score = 0.0;
@@ -122,12 +122,14 @@ fn score0_diff(
     let mut score = 0.0;
     for (g, idx, old, new) in [(&groups[i], ii, groups[j][jj], groups[i][ii]),
                               (&groups[j], jj, groups[i][ii], groups[j][jj])] {
-        for k in 0..g.len() - 1 {
-            let l = k + 1;
-            if k != idx && l != idx {
-                continue;
-            }
-            let other = if k == idx { l } else { k };
+        let mut checked = vec![];
+        if idx < g.len() - 1 {
+            checked.push(idx + 1);
+        }
+        if idx > 0 {
+            checked.push(idx - 1);
+        }
+        for other in checked {
             assert_eq!(new, g[idx]);
             let dist_new = (x[new] as f64 - x[g[other]] as f64).powi(2) + (y[new] as f64 - y[g[other]] as f64).powi(2);
             let dist_old = (x[old] as f64 - x[g[other]] as f64).powi(2) + (y[old] as f64 - y[g[other]] as f64).powi(2);
