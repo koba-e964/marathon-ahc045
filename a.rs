@@ -1,4 +1,8 @@
-use std::io::{self, BufRead, Write};
+#[derive(Clone, Copy)]
+struct Conf {
+    debug: bool,
+    climb0_count: i32,
+}
 
 fn getline() -> String {
     let mut ret = String::new();
@@ -10,6 +14,7 @@ fn getline() -> String {
 // Verified by https://atcoder.jp/contests/pakencamp-2019-day3/submissions/9253305
 struct UnionFind { disj: Vec<usize>, rank: Vec<usize> }
 
+#[allow(unused)]
 impl UnionFind {
     fn new(n: usize) -> Self {
         let disj = (0..n).collect();
@@ -49,15 +54,6 @@ struct Rng {
 }
 
 impl Rng {
-    fn new() -> Self {
-        use std::hash::{Hasher, BuildHasher};
-        let hm = std::collections::HashMap::<i32, i32>::new();
-        let mut hash = hm.hasher().build_hasher();
-        hash.write_u32(8128);
-        Rng {
-            x: hash.finish(),
-        }
-    }
     fn next(&mut self) -> u32 {
         let a = 0xdead_c0de_0013_3331u64;
         let b = 2457;
@@ -74,7 +70,6 @@ fn query(c: &[usize]) -> Vec<(usize, usize)> {
     }
     println!();
 
-    let stdin = io::stdin();
     let mut res = vec![];
     for _ in 0..c.len() - 1 {
         let line = getline().trim().to_string();
@@ -106,36 +101,25 @@ fn answer(groups: &[Vec<usize>], edges: &[Vec<(usize, usize)>]) {
     }
 }
 
-const CLIMB0_COUNT: i32 = 5000;
+const CLIMB0_COUNT: i32 = 400000;
 
 fn score0(x: &[usize], y: &[usize], groups: &[Vec<usize>]) -> f64 {
     let mut score = 0.0;
-    let n = x.len();
-    let mut uf = UnionFind::new(n);
     for group in groups {
-        let mut e = vec![];
-        for i in 0..group.len() {
-            for j in i + 1..group.len() {
-                let dist = (x[group[i]] as f64 - x[group[j]] as f64).powi(2) + (y[group[i]] as f64 - y[group[j]] as f64).powi(2);
-                e.push((dist, i, j));
-            }
-        }
-        e.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
-        for (sqdist, i, j) in e {
-            if !uf.is_same_set(group[i], group[j]) {
-                uf.unite(group[i], group[j]);
-                score += sqdist.sqrt();
-            }
+        for i in 0..group.len() - 1 {
+            let j = i + 1;
+            let dist = (x[group[i]] as f64 - x[group[j]] as f64).powi(2) + (y[group[i]] as f64 - y[group[j]] as f64).powi(2);
+            score += dist.sqrt();
         }
     }
     score
 }
 
-fn climb0(debug: bool, x: &[usize], y: &[usize], rng: &mut Rng, groups: &mut [Vec<usize>]) {
+fn climb0(conf: Conf, x: &[usize], y: &[usize], rng: &mut Rng, groups: &mut [Vec<usize>]) {
     let mut score = score0(x, y, groups);
-    for _ in 0..CLIMB0_COUNT {
-        let mut i = rng.next() as usize % groups.len();
-        let mut j = rng.next() as usize % groups.len();
+    for _ in 0..conf.climb0_count {
+        let i = rng.next() as usize % groups.len();
+        let j = rng.next() as usize % groups.len();
         if i == j {
             continue;
         }
@@ -152,7 +136,7 @@ fn climb0(debug: bool, x: &[usize], y: &[usize], rng: &mut Rng, groups: &mut [Ve
                 groups[i][ii] = groups[j][jj];
                 groups[j][jj] = tmp;
             } else {
-                if debug {
+                if conf.debug {
                     eprintln!("score improvement: {score} -> {new_score}");
                 }
                 score = new_score;
@@ -163,7 +147,18 @@ fn climb0(debug: bool, x: &[usize], y: &[usize], rng: &mut Rng, groups: &mut [Ve
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let debug = args.len() > 1 && args[1] == "debug";
+    let mut conf = Conf {
+        debug: false,
+        climb0_count: CLIMB0_COUNT,
+    };
+    for arg in args.iter().skip(1) {
+        if arg == "debug" {
+            conf.debug = true;
+        } else if arg.starts_with("climb0_count=") {
+            let val = arg.split('=').nth(1).unwrap().parse::<i32>().unwrap();
+            conf.climb0_count = val;
+        }
+    }
     let mut rng = Rng { x: 0xc0ba_e964 };
 
     let first_line = getline().trim().to_string();
@@ -171,7 +166,7 @@ fn main() {
         .split_whitespace()
         .map(|x| x.parse().unwrap())
         .collect();
-    let (n, m, _q, _l, _w) = (first_line[0], first_line[1], first_line[2], first_line[3], first_line[4]);
+    let (n, _m, _q, _l, _w) = (first_line[0], first_line[1], first_line[2], first_line[3], first_line[4]);
 
     let g: Vec<usize> = getline().trim().to_string()
         .split_whitespace()
@@ -203,7 +198,7 @@ fn main() {
         groups.push(cities[start_idx..start_idx + group_size].to_vec());
         start_idx += group_size;
     }
-    climb0(debug, &x, &y, &mut rng, &mut groups);
+    climb0(conf, &x, &y, &mut rng, &mut groups);
 
     let mut edges = Vec::new();
     for (k, &group_size) in g.iter().enumerate() {
