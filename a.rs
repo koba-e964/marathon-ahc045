@@ -101,6 +101,77 @@ fn answer(groups: &[Vec<usize>], edges: &[Vec<(usize, usize)>]) {
     }
 }
 
+fn init_dist(x: &[usize], y: &[usize], cities: &[usize]) -> f64 {
+    let n = x.len();
+    let mut tot = 0.0;
+    for i in 0..n - 1 {
+        let dist = ((x[cities[i]] as f64 - x[cities[i + 1]] as f64).powi(2) +
+                    (y[cities[i]] as f64 - y[cities[i + 1]] as f64).powi(2)).sqrt();
+        tot += dist;
+    }
+    tot
+}
+
+fn init_mo(x: &[usize], y: &[usize], w: usize) -> Vec<usize> {
+    let n = x.len();
+    let mut cities: Vec<usize> = (0..n).collect();
+    let stripe_width = w / 2;
+    cities.sort_by_key(|&i| {
+        let qx = x[i] / stripe_width;
+        let qy = y[i] / stripe_width;
+        let r = if qx % 2 == 0 {
+            qy
+        } else {
+            w - qy
+        };
+        let rx = x[i] % stripe_width;
+        let ry = y[i] % stripe_width;
+        let ry = if qx % 2 == 0 {
+            ry
+        } else {
+            stripe_width - ry
+        };
+        (qx, r, ry / (stripe_width / 2), rx / (stripe_width / 2))
+    });
+    cities
+}
+
+fn init_greedy(x: &[usize], y: &[usize], _w: usize) -> Vec<usize> {
+    let mut cities = vec![0];
+    let mut rem: Vec<_> = (1..x.len()).collect();
+    let dist = |a: usize, b: usize| {
+        ((x[a] as f64 - x[b] as f64).powi(2) + (y[a] as f64 - y[b] as f64).powi(2)).sqrt()
+    };
+    while !rem.is_empty() {
+        let mut best_dist = f64::MAX;
+        let mut best_i = 0;
+        let mut best_j = 0;
+        for i in 0..=cities.len() {
+            for j in 0..rem.len() {
+                let mut diff = 0.0;
+                if i < cities.len() {
+                    diff += dist(cities[i], rem[j]);
+                }
+                if i > 0 {
+                    diff += dist(cities[i - 1], rem[j]);
+                }
+                if i > 0 && i < cities.len() {
+                    diff -= dist(cities[i - 1], cities[i]);
+                }
+                if best_dist > diff {
+                    best_dist = diff;
+                    best_i = i;
+                    best_j = j;
+                }
+            }
+        }
+        cities.insert(best_i, rem[best_j]);
+        rem.remove(best_j);
+    }
+    cities
+}
+
+
 const CLIMB0_COUNT: i32 = 20_000_000;
 
 fn score0(x: &[usize], y: &[usize], groups: &[Vec<usize>]) -> f64 {
@@ -214,25 +285,17 @@ fn main() {
     let x: Vec<usize> = lx.iter().zip(&rx).map(|(l, r)| (l + r) / 2).collect();
     let y: Vec<usize> = ly.iter().zip(&ry).map(|(l, r)| (l + r) / 2).collect();
 
-    let mut cities: Vec<usize> = (0..n).collect();
-    let stripe_width = w / 2;
-    cities.sort_by_key(|&i| {
-        let qx = x[i] / stripe_width;
-        let qy = y[i] / stripe_width;
-        let r = if qx % 2 == 0 {
-            qy
-        } else {
-            w - qy
-        };
-        let rx = x[i] % stripe_width;
-        let ry = y[i] % stripe_width;
-        let ry = if qx % 2 == 0 {
-            ry
-        } else {
-            stripe_width - ry
-        };
-        (qx, r, ry / (stripe_width / 2), rx / (stripe_width / 2))
-    });
+    let cities0: Vec<usize> = init_mo(&x, &y, w);
+    let dist0 = init_dist(&x, &y, &cities0);
+    eprintln!("dist0 = {dist0}");
+    let cities1 = init_greedy(&x, &y, w);
+    let dist1 = init_dist(&x, &y, &cities1);
+    eprintln!("dist1 = {dist1}");
+    let cities = if dist0 < dist1 {
+        cities0
+    } else {
+        cities1
+    };
 
     let mut groups = Vec::new();
     let mut start_idx = 0;
