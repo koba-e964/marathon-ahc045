@@ -217,20 +217,21 @@ fn main() {
     let mut cities: Vec<usize> = (0..n).collect();
     let stripe_width = w / 2;
     cities.sort_by_key(|&i| {
-        let q = x[i] / stripe_width;
-        let r = if q % 2 == 0 {
-            y[i]
+        let qx = x[i] / stripe_width;
+        let qy = y[i] / stripe_width;
+        let r = if qx % 2 == 0 {
+            qy
         } else {
-            w - y[i]
+            w - qy
         };
-        let q2 = r / stripe_width;
-        let r2 = x[i] % stripe_width;
-        let r2 = if q2 % 2 == 0 {
-            r2
+        let rx = x[i] % stripe_width;
+        let ry = y[i] % stripe_width;
+        let ry = if qx % 2 == 0 {
+            ry
         } else {
-            stripe_width - r2
+            stripe_width - ry
         };
-        (q, q2, r2)
+        (qx, r, ry / (stripe_width / 2), rx / (stripe_width / 2))
     });
 
     let mut groups = Vec::new();
