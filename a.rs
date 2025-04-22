@@ -191,7 +191,7 @@ fn main() {
         .split_whitespace()
         .map(|x| x.parse().unwrap())
         .collect();
-    let (n, _m, _q, l, _w) = (first_line[0], first_line[1], first_line[2], first_line[3], first_line[4]);
+    let (n, _m, _q, l, w) = (first_line[0], first_line[1], first_line[2], first_line[3], first_line[4]);
 
     let g: Vec<usize> = getline().trim().to_string()
         .split_whitespace()
@@ -215,7 +215,23 @@ fn main() {
     let y: Vec<usize> = ly.iter().zip(&ry).map(|(l, r)| (l + r) / 2).collect();
 
     let mut cities: Vec<usize> = (0..n).collect();
-    cities.sort_by_key(|&i| (x[i], y[i]));
+    let stripe_width = w / 2;
+    cities.sort_by_key(|&i| {
+        let q = x[i] / stripe_width;
+        let r = if q % 2 == 0 {
+            y[i]
+        } else {
+            w - y[i]
+        };
+        let q2 = r / stripe_width;
+        let r2 = x[i] % stripe_width;
+        let r2 = if q2 % 2 == 0 {
+            r2
+        } else {
+            stripe_width - r2
+        };
+        (q, q2, r2)
+    });
 
     let mut groups = Vec::new();
     let mut start_idx = 0;
