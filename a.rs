@@ -191,7 +191,7 @@ fn main() {
         .split_whitespace()
         .map(|x| x.parse().unwrap())
         .collect();
-    let (n, _m, _q, _l, _w) = (first_line[0], first_line[1], first_line[2], first_line[3], first_line[4]);
+    let (n, _m, _q, l, _w) = (first_line[0], first_line[1], first_line[2], first_line[3], first_line[4]);
 
     let g: Vec<usize> = getline().trim().to_string()
         .split_whitespace()
@@ -231,10 +231,10 @@ fn main() {
         let group = &groups[k];
         let mut i = 0;
         while i + 1 < group_size {
-            if i < group_size - 2 {
-                let ret = query(&group[i..i + 3]);
+            if i + 2 < group_size {
+                let ret = query(&group[i..group_size.min(i + l)]);
                 group_edges.extend(ret);
-                i += 2;
+                i = group_size.min(i + l - 1);
             } else {
                 group_edges.push((group[i], group[i + 1]));
                 i += 2;
