@@ -172,7 +172,7 @@ fn init_greedy(x: &[usize], y: &[usize], _w: usize) -> Vec<usize> {
 }
 
 
-const CLIMB0_COUNT: i32 = 20_000_000;
+const CLIMB0_COUNT: i32 = 0;
 
 fn score0(x: &[usize], y: &[usize], groups: &[Vec<usize>]) -> f64 {
     let mut score = 0.0;
