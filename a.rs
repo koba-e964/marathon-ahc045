@@ -241,6 +241,61 @@ fn climb0(conf: Conf, x: &[usize], y: &[usize], rng: &mut Rng, groups: &mut [Vec
     }
 }
 
+fn find_edges_by_oracle(
+    groups: &[Vec<usize>], _x: &[usize], _y: &[usize],
+    l: usize,
+) -> Vec<Vec<(usize, usize)>> {
+    let mut edges = Vec::new();
+    for group in groups {
+        let mut group_edges = Vec::new();
+        let group_size = group.len();
+        let mut i = 0;
+        while i + 1 < group_size {
+            if i + 2 < group_size {
+                let ret = query(&group[i..group_size.min(i + l)]);
+                group_edges.extend(ret);
+                i = group_size.min(i + l - 1);
+            } else {
+                group_edges.push((group[i], group[i + 1]));
+                i += 2;
+            }
+        }
+        edges.push(group_edges);
+    }
+    edges
+}
+
+fn find_edges_by_uf(
+    groups: &[Vec<usize>], x: &[usize], y: &[usize],
+    _l: usize,
+) -> Vec<Vec<(usize, usize)>> {
+    let mut edges = Vec::new();
+    let mut uf = UnionFind::new(x.len());
+    for group in groups {
+        let mut group_edges = Vec::new();
+        let group_size = group.len();
+        let mut sorted_edges = Vec::new();
+        for i in 0..group_size {
+            for j in i + 1..group_size {
+                let dist = (x[group[i]] as f64 - x[group[j]] as f64).powi(2) +
+                   (y[group[i]] as f64 - y[group[j]] as f64).powi(2);
+                sorted_edges.push((dist, group[i], group[j]));
+            }
+        }
+        sorted_edges.sort_unstable_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        for (_, i, j) in sorted_edges {
+            if uf.is_same_set(i, j) {
+                continue;
+            }
+            uf.unite(i, j);
+            group_edges.push((i, j));
+        }
+        edges.push(group_edges);
+    }
+    edges
+}
+
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let mut conf = Conf {
@@ -305,23 +360,10 @@ fn main() {
     }
     climb0(conf, &x, &y, &mut rng, &mut groups);
 
-    let mut edges = Vec::new();
-    for (k, &group_size) in g.iter().enumerate() {
-        let mut group_edges = Vec::new();
-        let group = &groups[k];
-        let mut i = 0;
-        while i + 1 < group_size {
-            if i + 2 < group_size {
-                let ret = query(&group[i..group_size.min(i + l)]);
-                group_edges.extend(ret);
-                i = group_size.min(i + l - 1);
-            } else {
-                group_edges.push((group[i], group[i + 1]));
-                i += 2;
-            }
-        }
-        edges.push(group_edges);
-    }
+    let edges_oracle = find_edges_by_oracle(&groups, &x, &y, l);
+    let edges_uf = find_edges_by_uf(&groups, &x, &y, l);
+    let edges = edges_uf;
+    let edges = edges_oracle;
 
     answer(&groups, &edges);
 }
